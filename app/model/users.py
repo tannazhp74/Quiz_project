@@ -1,13 +1,7 @@
-from uuid import uuid4
 
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, ForeignKey, DateTime, String, JSON, ARRAY, Text
 from app import db
 import datetime
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 
 class User(db.Model):
     __tablename__ = 'users'
