@@ -315,3 +315,23 @@ class ListTransactions(Resource):
             return {'message': 'Invalid filter type'}, 400
 
         return {'transactions': transaction_list}, 200
+
+
+@quiz_namespace.route('/list_cards')
+class ListCards(Resource):
+    @quiz_namespace.doc('List cards', security='apikey')
+    @token_required
+    def get(self, user_id):
+        cards = Card.query.filter_by(user_id=user_id).all()
+        card_list = [
+            {
+                'id': item.id,
+                'card_no': item.card_no,
+                'label': item.label,
+                'user_id': item.user_id,
+                'date_created': str(item.date_created),
+                'date_modified': str(item.date_modified)
+            }
+            for item in cards]
+
+        return {'card list': card_list}, 200
