@@ -1,0 +1,10 @@
+psycopg2-binary
+python-dotenv
+FLASK == 2.2.2
+flask_restx
+requests
+werkzeug
+redis
+flask_migrate
+flask_sqlalchemy
+PYJWT
