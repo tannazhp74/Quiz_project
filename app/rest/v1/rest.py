@@ -181,9 +181,14 @@ class CreateCard(Resource):
         if not user_id:
             return {'message': 'User not found'}, 404
 
-        new_card = Card(card_no=card_no, user_id=user_id, label='NOT_SYSTEM_CARD', status='ACTIVE')
-        db.session.add(new_card)
-        db.session.commit()
+        card = Card.query.filter_by(card_no=card_no, user_id=user_id).first()
+
+        if card is None:
+            new_card = Card(card_no=card_no, user_id=user_id, label='NOT_SYSTEM_CARD', status='ACTIVE')
+            db.session.add(new_card)
+            db.session.commit()
+        else:
+            return {'message': 'The user has already this card'}, 400
 
         return {'message': 'Card created successfully'}, 201
 
