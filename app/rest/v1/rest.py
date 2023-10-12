@@ -332,6 +332,7 @@ class ListCards(Resource):
                 'date_created': str(item.date_created),
                 'date_modified': str(item.date_modified)
             }
-            for item in cards]
+            for item in cards if item.status != 'DELETED'
+        ]
 
         return {'card list': card_list}, 200
