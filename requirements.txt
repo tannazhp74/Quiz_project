@@ -1,10 +1,10 @@
-psycopg2-binary
-python-dotenv
+psycopg2-binary==2.9.9
+python-dotenv==0.20.0
 FLASK == 2.2.2
-flask_restx
-requests
-werkzeug
-redis
-flask_migrate
-flask_sqlalchemy
-PYJWT
+flask-restx==1.1.0
+requests==2.31.0
+Werkzeug==2.2.2
+redis==5.0.1
+Flask-Migrate==4.0.5
+Flask-SQLAlchemy==3.0.3
+PyJWT==2.8.0

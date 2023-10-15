@@ -108,6 +108,7 @@ class RegisterUser(Resource):
     def post(self):
         # Get user data from the request
         data = request.get_json()
+
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
@@ -159,7 +160,7 @@ class Login(Resource):
 
         redis_client.set(f'user :{user.id}', user.to_json(), ex=300)  # 300 seconds (5 minutes) expiration
 
-        precreated_card = Card.query.filter_by(card_no='SYSTEM_CARD', user_id=user.id).first()
+        precreated_card = Card.query.filter_by(label='SYSTEM_CARD', user_id=user.id).first()
         if precreated_card and precreated_card.status != "ACTIVE":
             precreated_card.status = "ACTIVE"
             db.session.commit()

@@ -6,6 +6,8 @@ from app import db
 
 class Transaction(db.Model):
     __tablename__ = 'transactions'
+    __table_args__ = {'extend_existing': True}
+
 
     id = db.Column(db.Integer, primary_key=True)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
