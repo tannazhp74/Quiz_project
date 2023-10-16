@@ -1,34 +1,39 @@
-
 from datetime import timedelta, datetime
-from werkzeug.security import check_password_hash, generate_password_hash
 import jwt
 from app import db
 from config import Config
-from model import Transaction
-from model.card import Card
-from model.user import User
+from persistence.card import CardPersistence
+from persistence.user import UserPersistence
 from service import redis_client
 
 
 class UserService:
 
-    def __init__(self):
-        pass
-
     @classmethod
     def user_register(cls, username, password, email):
-        # Create a new user and add it to the database
-        new_user = User(username=username, email=email, password=generate_password_hash(password))
-        db.session.add(new_user)
-        db.session.commit()
+        # Check if the username or email already exists in the database
+        existing_user = UserPersistence.get_filter_user(username, email)
+        if existing_user:
+            raise Exception('Username or email already in use')
 
-        # Automatically create a card for the user and set its status to "ACTIVE"
-        auto_card = Card(label='SYSTEM_CARD', user_id=new_user.id, status='PASSIVE', card_no=1)
-        db.session.add(auto_card)
-        db.session.commit()
+        # Create a new user and add it to the database
+        new_user = UserPersistence.add_user(username, password, email)
+
+        # Automatically create a card for the user and set its status to "PASSIVE"
+        CardPersistence.add_card(new_user.id, 1)
 
     @classmethod
-    def user_login(cls, user):
+    def user_login(cls, username, password):
+        # Check if the user exists in the database
+        user = UserPersistence.get_user(username)
+
+        if not user:
+            raise Exception('User not found')
+
+        # Verify the password
+        if UserPersistence.authentication(user.password, password) is False:
+            raise Exception('Incorrect password')
+
         # Generate a JWT token for the user
         token_payload = {
             'user_id': user.id,
@@ -39,9 +44,9 @@ class UserService:
 
         redis_client.set(f'user :{user.id}', user.to_json(), ex=300)  # 300 seconds (5 minutes) expiration
 
-        precreated_card = Card.query.filter_by(label='SYSTEM_CARD', user_id=user.id).first()
-        if precreated_card and precreated_card.status != "ACTIVE":
-            precreated_card.status = "ACTIVE"
+        pre_created_card = CardPersistence.get_filter_card(user.id)
+        if pre_created_card and pre_created_card.status != "ACTIVE":
+            pre_created_card.status = "ACTIVE"
             db.session.commit()
 
         redis_data = redis_client.get(f'user :{user.id}')

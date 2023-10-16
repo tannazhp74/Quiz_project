@@ -1,40 +1,51 @@
-from app import db
-from model.card import Card
+from persistence.card import CardPersistence
+from persistence.user import UserPersistence
 
 
 class CardService:
-    def __init__(self):
-        pass
-
     @classmethod
     def card_insert(cls, user_id, card_no):
+        user = UserPersistence.get_user_by_id(user_id)
+        if not user:
+            return {'message': 'User not found'}
 
-        card = Card.query.filter_by(card_no=card_no, user_id=user_id).first()
+        card = CardPersistence.check_card(card_no, user_id)
         if card is None:
-            new_card = Card(card_no=card_no, user_id=user_id, label='NOT_SYSTEM_CARD', status='ACTIVE')
-            db.session.add(new_card)
-            db.session.commit()
+            CardPersistence.add_card(user_id, card_no, status='ACTIVE',label='NOT_SYSTEM_CARD' )
         else:
             raise Exception('The user has already this card')
 
     @classmethod
-    def card_update(cls, data, card):
+    def card_update(cls, data):
+        card = CardPersistence.get_card_by_id(data.get('card_id'))
+        if not card:
+            raise Exception('Card not found')
         if card.label != "SYSTEM_CARD":
-            card.card_no = data.get('card_no', card.card_no)
-            card.status = data.get('status', card.status)
-            db.session.commit()
+            CardPersistence.update_card(
+                card,
+                card_no=data.get('card_no', card.card_no),
+                status=data.get('status', card.status)
+                )
 
     @classmethod
-    def card_delete(cls, card):
+    def card_delete(cls, card_id, user_id):
+        card = CardPersistence.check_card(card_id, user_id=user_id)
+        if not card:
+            raise Exception('Card not found')
         if not card.label == 'SYSTEM_CARD':
             # Mark the card as "DELETED"
-            card.status = "DELETED"
-            db.session.commit()
+            CardPersistence.delete_card(card, status="DELETED")
         else:
-            raise Exception('This card can not be modified')
+            return Exception('SYSTEM_CARD This card can not be modified')
 
     @classmethod
-    def card_list(cls, cards):
+    def card_list(cls, user_id):
+        user = UserPersistence.get_user_by_id(user_id)
+        if not user:
+            return {'message': 'User not found'}, 401
+        cards = CardPersistence.get_all_cards(user_id)
+        if not cards:
+            return {'message': "The user hasn't this card no"}, 401
         card_list = [
             {
                 'id': item.id,

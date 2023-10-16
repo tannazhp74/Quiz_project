@@ -1,26 +1,25 @@
-from flask import Flask, request, jsonify
-from app import db
-from model import Transaction
-from model.card import Card
+from persistence.card import CardPersistence
+from persistence.transaction import TransactionPersistence
 
 
 class TransactionService:
 
-    def __init__(self):
-        pass
-
     @classmethod
-    def transaction_insert(cls, card, amount, description):
+    def transaction_insert(cls, card_id, amount, description):
+        card = CardPersistence.get_card_by_id(card_id)
+        if not card:
+            return {'message': 'Card not found'}, 404
+        if card.status != "ACTIVE":
+            return {'message': 'Card is not active'}, 400
         # Create a new transaction associated with the card
-        new_transaction = Transaction(card_id=card.id, amount=amount, description=description)
-        db.session.add(new_transaction)
-        db.session.commit()
+        TransactionPersistence.add_transaction(card.id, amount, description)
 
     @classmethod
     def transaction_list_summary(cls, user_id):
         # Retrieve user's active and passive cards
-        active_cards = Card.query.filter_by(user_id=user_id, status="ACTIVE").all()
-        passive_cards = Card.query.filter_by(user_id=user_id, status="PASSIVE").all()
+        all_cards = CardPersistence.get_all_cards(user_id=user_id)
+        active_cards = [card for card in all_cards if card.status == 'ACTIVE']
+        passive_cards = [card for card in all_cards if card.status == 'PASSIVE']
 
         # Calculate the total amount spent on active and passive cards
         active_total_amount = sum([t.amount for card in active_cards for t in card.transactions])
@@ -35,11 +34,18 @@ class TransactionService:
         return transaction_list
 
     @classmethod
-    def transaction_list_detailed(cls, card):
-        description = request.json.get('description')  # The filter argument specifies the view type
+    def transaction_list_detailed(cls, data):
+        card_id = data.get('card_id')
+        description = data.get('description')  # The filter argument specifies the view type
+
+        if not card_id:
+            raise Exception('Enter card id')
+        card = CardPersistence.get_card_by_id(card_id)
+        if not card:
+            raise Exception('Card not found')
 
         # Retrieve transactions associated with the card in a detailed view
-        transactions = Transaction.query.filter_by(card_id=card.id).all()
+        transactions = TransactionPersistence.get_transaction(card.id)
         transaction_list = [
             {
                 'id': t.id,

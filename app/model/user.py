@@ -1,14 +1,11 @@
 import json
-
 from app import db
-
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 class User(db.Model):
     __tablename__ = 'users'
     __table_args__ = {'extend_existing': True}
-
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -25,4 +22,6 @@ class User(db.Model):
         return f'<User {self.username}>'
 
     def to_json(self):
-        return json.dumps({'id': self.id, 'username': self.username, 'email': self.email, 'date_created': str(self.date_created)})
+        return json.dumps(
+            {'id': self.id, 'username': self.username, 'email': self.email, 'date_created': str(self.date_created)}
+        )

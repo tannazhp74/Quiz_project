@@ -1,13 +1,9 @@
 import json
-
 import jwt
-from werkzeug.security import check_password_hash, generate_password_hash
 from flask_restx import Namespace, Resource, cors, fields
 from functools import wraps
-from flask import Flask, request, jsonify
-from app.model.card import Card
+from flask import request
 from config import Config
-from model.user import User
 from service.card import CardService
 from service.transaction import TransactionService
 from service.user import UserService
@@ -110,15 +106,11 @@ class RegisterUser(Resource):
         email = data.get('email')
         password = data.get('password')
 
-        # Check if the username or email already exists in the database
-        existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
-        if existing_user:
-            return {'message': 'Username or email already in use'}, 400
         try:
             UserService.user_register(username, password, email)
             return {'message': 'User registered successfully'}, 201
         except Exception as e:
-            return {'message': 'User not registered'}, 404
+            return 'registration failed', 400
 
 
 @quiz_namespace.route('/login')
@@ -130,20 +122,11 @@ class Login(Resource):
         username = data.get('username')
         password = data.get('password')
 
-        # Check if the user exists in the database
-        user = User.query.filter_by(username=username).first()
-
-        if not user:
-            return {'message': 'User not found'}, 401
-
-        # Verify the password
-        if not check_password_hash(user.password, password):
-            return {'message': 'Incorrect password'}, 401
-
         try:
-            token, redis_data = UserService.user_login(user)
+            token, redis_data = UserService.user_login(username, password)
             return {'token': token, 'redis_data': json.loads(redis_data)}, 200
-        except  Exception as e:
+        except Exception as e:
+           
             return {'message': 'User not login'}, 404
 
 
@@ -155,14 +138,11 @@ class CreateCard(Resource):
     def post(self, user_id):
         data = request.get_json()
         card_no = data.get('card_no')
-        user = User.query.filter_by(id=user_id).first()
-        if not user:
-            return {'message': 'User not found'}
-
         try:
             CardService.card_insert(user_id=user_id, card_no=card_no)
             return {'message': 'Card created successfully'}, 201
         except Exception as e:
+           
             return {'message': 'Card not created'}, 404
 
 
@@ -171,19 +151,13 @@ class UpdateCard(Resource):
     @quiz_namespace.doc('Update card', security='apikey')
     @quiz_namespace.expect(update_card_model)
     @token_required
-    def put(self):
+    def put(self, user_id):
         data = request.get_json()
-        card = Card.query.get(data.get('card_id'))
-
-        if not card:
-            return {'message': 'Card not found'}, 404
-
         # Update card details (except for "SYSTEM_CARD")
         try:
-            CardService.card_update(data=data, card=card)
+            CardService.card_update(data=data)
             return {'message': 'Card updated successfully'}, 200
-        except Exception as e:
-
+        except  Exception as e:
             return {'message': 'Card not updated'}, 404
 
 
@@ -192,15 +166,12 @@ class DeleteCard(Resource):
     @quiz_namespace.doc('Delete card', security='apikey')
     @quiz_namespace.expect()
     @token_required
-    def delete(self, card_id):
-        card = Card.query.get(card_id)
-        if not card:
-            return {'message': 'Card not found'}, 404
+    def delete(self, user_id, card_id):
         try:
-            CardService.card_delete(card)
+            CardService.card_delete(card_id, user_id)
             return {'message': 'Card marked as deleted'}, 200
         except Exception as e:
-
+           
             return {'message': 'Card not deleted'}, 404
 
 
@@ -209,25 +180,17 @@ class CreateTransaction(Resource):
     @quiz_namespace.doc('Create transaction', security='apikey')
     @quiz_namespace.expect(create_transaction_model)
     @token_required
-    def post(self):
+    def post(self, user_id):
         data = request.get_json()
         card_id = data.get('card_id')
         amount = data.get('amount')
         description = data.get('description')
 
-        card = Card.query.get(card_id)
-
-        if not card:
-            return {'message': 'Card not found'}, 404
-
-        if card.status != "ACTIVE":
-            return {'message': 'Card is not active'}, 400
-
         try:
-            TransactionService.transaction_insert(card=card, amount=amount, description=description)
+            TransactionService.transaction_insert(card_id=card_id, amount=amount, description=description)
             return {'message': 'Transaction created successfully'}, 201
         except Exception as e:
-
+           
             return {'message': 'Transaction not created'}, 404
 
 
@@ -238,15 +201,9 @@ class ListTransactions(Resource):
     @token_required
     def post(self, user_id):
         filter_type = request.json.get('filter')  # The filter argument specifies the view type
-
+        data = request.get_json()
         if filter_type == 'detailed':
-            card_id = request.json.get('card_id')
-            if not card_id:
-                return {'message': 'Enter car id'}, 400
-            card = Card.query.get(card_id)
-            if not card:
-                return {'message': 'Card not found'}, 404
-            transaction_list = TransactionService.transaction_list_detailed(card)
+            transaction_list = TransactionService.transaction_list_detailed(data)
 
         elif filter_type == 'summary':
             transaction_list = TransactionService.transaction_list_summary(user_id)
@@ -262,14 +219,9 @@ class ListCards(Resource):
     @quiz_namespace.doc('List cards', security='apikey')
     @token_required
     def get(self, user_id):
-        user = User.query.filter_by(id=user_id).first()
-        if not user:
-            return {'message': 'User not found'}, 401
-        cards = Card.query.filter_by(user_id=user_id).all()
-        if not cards:
-            return {'message': "The user hasn't this card no"}, 401
+
         try:
-            card_list = CardService.card_list(cards)
+            card_list = CardService.card_list(user_id)
             return {'card list': card_list}, 200
         except Exception as e:
             return {'message': 'Card not listed'}, 404
