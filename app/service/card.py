@@ -28,8 +28,8 @@ class CardService:
                 )
 
     @classmethod
-    def card_delete(cls, card_id, user_id):
-        card = CardPersistence.check_card(card_id, user_id=user_id)
+    def card_delete(cls, card_no, user_id):
+        card = CardPersistence.check_card(card_no, user_id=user_id)
         if not card:
             raise Exception('Card not found')
         if not card.label == 'SYSTEM_CARD':

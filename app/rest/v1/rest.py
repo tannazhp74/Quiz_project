@@ -161,14 +161,14 @@ class UpdateCard(Resource):
             return {'message': 'Card not updated'}, 404
 
 
-@quiz_namespace.route('/delete_card/<int:card_id>')
+@quiz_namespace.route('/delete_card/<int:card_no>')
 class DeleteCard(Resource):
     @quiz_namespace.doc('Delete card', security='apikey')
     @quiz_namespace.expect()
     @token_required
-    def delete(self, user_id, card_id):
+    def delete(self, user_id, card_no):
         try:
-            CardService.card_delete(card_id, user_id)
+            CardService.card_delete(card_no, user_id)
             return {'message': 'Card marked as deleted'}, 200
         except Exception as e:
            
