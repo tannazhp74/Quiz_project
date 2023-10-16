@@ -45,9 +45,7 @@ class UserService:
         redis_client.set(f'user :{user.id}', user.to_json(), ex=300)  # 300 seconds (5 minutes) expiration
 
         pre_created_card = CardPersistence.get_filter_card(user.id)
-        if pre_created_card and pre_created_card.status != "ACTIVE":
-            pre_created_card.status = "ACTIVE"
-            db.session.commit()
+        CardPersistence.update_card(pre_created_card, pre_created_card.card_no, status="ACTIVE")
 
         redis_data = redis_client.get(f'user :{user.id}')
         return token, redis_data
